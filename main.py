@@ -1,42 +1,353 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import Dict, List
 
 app = FastAPI()
 
-# Matches your frontend payload structure
+# Request model
 class MessagePayload(BaseModel):
+    session_id: str
     message: str
 
-# Aligned mock database: Changed "message" key to "text" to match your UI mapping!
-chat_history: List[Dict[str, str]] = [
-    {"sender": "bot", "text": "Hello! How can I help you today?"}
-]
+# Store chats by session
+sessions: Dict[str, List[Dict[str, str]]] = {}
 
-@app.get("/chat/load-history")
-def load_history():
-    """Returns the chat history list matching frontend property names."""
-    return {"status": "success", "history": chat_history}
+# Load history for a specific session
+@app.get("/chat/load-history/{session_id}")
+def load_history(session_id: str):
 
-@app.post("/chat/message")
-def send_message(payload: MessagePayload):
-    """Receives a user message, stores it, and returns a response matching the UI."""
-    # 1. Save user message to history using 'text'
-    chat_history.append({"sender": "user", "text": payload.message})
-    
-    # 2. Simulate a basic bot reply
-    bot_reply = f"Received your message: '{payload.message}'"
-    chat_history.append({"sender": "bot", "text": bot_reply})
-    
+    # Create session if not exists
+    if session_id not in sessions:
+        sessions[session_id] = [
+            {
+                "sender": "bot",
+                "text": "Hello! How can I help you today?"
+            }
+        ]
+
     return {
         "status": "success",
-        "user_message": payload.message,
-        "reply": bot_reply # Handled dynamically by handleSubmit in ChatWindow
+        "history": sessions[session_id]
+    }
+
+# Send message
+@app.post("/chat/message")
+def send_message(payload: MessagePayload):
+
+    session_id = payload.session_id
+
+    # Create session if not exists
+    if session_id not in sessions:
+        sessions[session_id] = []
+
+    # Save user message
+    sessions[session_id].append({
+        "sender": "user",
+        "text": payload.message
+    })
+
+    # Bot reply
+    bot_reply = f"Received your message: '{payload.message}'"
+
+    # Save bot reply
+    sessions[session_id].append({
+        "sender": "bot",
+        "text": bot_reply
+    })
+
+    return {
+        "status": "success",
+        "reply": bot_reply,
+        "history": sessions[session_id]
     }
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="127.0.0.1", port=8000)
+
+
+
+
+# from fastapi import FastAPI
+# from pydantic import BaseModel
+# from typing import List, Dict
+
+# app = FastAPI()
+
+# # Matches your frontend payload structure
+# class MessagePayload(BaseModel):
+#     message: str
+
+# # Aligned mock database: Changed "message" key to "text" to match your UI mapping!
+# chat_history: List[Dict[str, str]] = [
+#     {"sender": "bot", "text": "Hello! How can I help you today?"}
+# ]
+
+# @app.get("/chat/load-history")
+# def load_history():
+#     """Returns the chat history list matching frontend property names."""
+#     return {"status": "success", "history": chat_history}
+
+# @app.post("/chat/message")
+# def send_message(payload: MessagePayload):
+#     """Receives a user message, stores it, and returns a response matching the UI."""
+#     # 1. Save user message to history using 'text'
+#     chat_history.append({"sender": "user", "text": payload.message})
+    
+#     # 2. Simulate a basic bot reply
+#     bot_reply = f"Received your message: '{payload.message}'"
+#     chat_history.append({"sender": "bot", "text": bot_reply})
+    
+#     return {
+#         "status": "success",
+#         "user_message": payload.message,
+#         "reply": bot_reply # Handled dynamically by handleSubmit in ChatWindow
+#     }
+
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="127.0.0.1", port=8000)
+
+
+# from fastapi import FastAPI
+# from pydantic import BaseModel
+# from typing import Dict, List
+
+# app = FastAPI()
+
+# # =========================
+# # REQUEST MODEL
+# # =========================
+
+# class MessagePayload(BaseModel):
+#     session_id: str
+#     message: str
+
+
+# # =========================
+# # SESSION DATABASE
+# # =========================
+
+# sessions: Dict[str, Dict] = {
+
+#     "1": {
+
+#         "title": "Main Chat Room",
+
+#         "messages": [
+
+#             {
+#                 "sender": "bot",
+#                 "text": "Hello! How can I help you today?"
+#             }
+
+#         ]
+#     }
+# }
+
+
+# # =========================
+# # LOAD ALL SESSIONS
+# # =========================
+
+# @app.get("/chat/sessions")
+# def load_sessions():
+
+#     formatted_sessions = []
+
+#     for session_id, session_data in sessions.items():
+
+#         formatted_sessions.append({
+
+#             "id": session_id,
+
+#             "title": session_data["title"],
+
+#             "messages": session_data["messages"]
+
+#         })
+
+#     return {
+
+#         "status": "success",
+
+#         "sessions": formatted_sessions
+
+#     }
+
+
+# # =========================
+# # CREATE NEW SESSION
+# # =========================
+
+# @app.post("/chat/create-session")
+# def create_session():
+
+#     new_id = str(len(sessions) + 1)
+
+#     sessions[new_id] = {
+
+#         "title": f"New Chat {new_id}",
+
+#         "messages": []
+
+#     }
+
+#     return {
+
+#         "status": "success",
+
+#         "session": {
+
+#             "id": new_id,
+
+#             "title": sessions[new_id]["title"],
+
+#             "messages": []
+
+#         }
+
+#     }
+
+
+# # =========================
+# # LOAD SINGLE SESSION
+# # =========================
+
+# @app.get("/chat/session/{session_id}")
+# def load_single_session(session_id: str):
+
+#     if session_id not in sessions:
+
+#         return {
+
+#             "status": "error",
+
+#             "message": "Session not found"
+
+#         }
+
+#     return {
+
+#         "status": "success",
+
+#         "session": {
+
+#             "id": session_id,
+
+#             "title": sessions[session_id]["title"],
+
+#             "messages": sessions[session_id]["messages"]
+
+#         }
+
+#     }
+
+
+# # =========================
+# # SEND MESSAGE
+# # =========================
+
+# @app.post("/chat/message")
+# def send_message(payload: MessagePayload):
+
+#     session_id = payload.session_id
+
+#     if session_id not in sessions:
+
+#         return {
+
+#             "status": "error",
+
+#             "message": "Invalid session"
+
+#         }
+
+#     # USER MESSAGE
+#     sessions[session_id]["messages"].append({
+
+#         "sender": "user",
+
+#         "text": payload.message
+
+#     })
+
+#     # BOT REPLY
+#     bot_reply = f"Received your message: '{payload.message}'"
+
+#     sessions[session_id]["messages"].append({
+
+#         "sender": "bot",
+
+#         "text": bot_reply
+
+#     })
+
+#     return {
+
+#         "status": "success",
+
+#         "reply": bot_reply
+
+#     }
+
+
+# # =========================
+# # RUN SERVER
+# # =========================
+
+# if __name__ == "__main__":
+
+#     import uvicorn
+
+#     uvicorn.run(
+#         app,
+#         host="127.0.0.1",
+#         port=8000
+#     )
+
+
+
+# from fastapi import FastAPI
+# from pydantic import BaseModel
+# from typing import List, Dict
+
+# app = FastAPI()
+
+# # Matches your frontend payload structure
+# class MessagePayload(BaseModel):
+#     message: str
+
+# # Aligned mock database: Changed "message" key to "text" to match your UI mapping!
+# chat_history: List[Dict[str, str]] = [
+#     {"sender": "bot", "text": "Hello! How can I help you today?"}
+# ]
+
+# @app.get("/chat/load-history")
+# def load_history():
+#     """Returns the chat history list matching frontend property names."""
+#     return {"status": "success", "history": chat_history}
+
+# @app.post("/chat/message")
+# def send_message(payload: MessagePayload):
+#     """Receives a user message, stores it, and returns a response matching the UI."""
+#     # 1. Save user message to history using 'text'
+#     chat_history.append({"sender": "user", "text": payload.message})
+    
+#     # 2. Simulate a basic bot reply
+#     bot_reply = f"Received your message: '{payload.message}'"
+#     chat_history.append({"sender": "bot", "text": bot_reply})
+    
+#     return {
+#         "status": "success",
+#         "user_message": payload.message,
+#         "reply": bot_reply # Handled dynamically by handleSubmit in ChatWindow
+#     }
+
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="127.0.0.1", port=8000)
 
 
 
