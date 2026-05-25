@@ -50,10 +50,10 @@ def send_message(payload: MessagePayload):
         "reply": bot_reply # Handled dynamically by handleSubmit in ChatWindow
     }
 
-# Fix: Corrected syntax typo (__name__ and __main__) and added dynamic port allocation
-if __name__ == "__main__":
-    # Pull the port assigned by Railway, default to 8000 for local development
-    port = int(os.environ.get("PORT", 8000))
+# # Fix: Corrected syntax typo (__name__ and __main__) and added dynamic port allocation
+# if __name__ == "__main__":
+#     # Pull the port assigned by Railway, default to 8000 for local development
+#     port = int(os.environ.get("PORT", 8000))
     
-    # Force host to 0.0.0.0 to allow Railway's proxy network to connect
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
+#     # Force host to 0.0.0.0 to allow Railway's proxy network to connect
+#     uvicorn.run("main:app", host="0.0.0.0", port=port)
